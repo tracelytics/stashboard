@@ -2,10 +2,10 @@ import os
 
 DEBUG = False
 
-SITE_NAME = "Stashboard"
-SITE_AUTHOR = "Colonel Mustache"
-SITE_URL = "http://stashbooard.appspot.com"
-REPORT_URL = "mailto:help@stashboard.org"
+SITE_NAME = "Tracelytics Status"
+SITE_AUTHOR = "Tracelytics Ops"
+SITE_URL = "http://status.tracelytics.com"
+REPORT_URL = "mailto:support@tracelytics.com"
 
 # RSS Feed settings
 RSS_NUM_EVENTS_TO_FETCH = 50
