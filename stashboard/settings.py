@@ -2,10 +2,10 @@ import os
 
 DEBUG = False
 
-SITE_NAME = "Tracelytics Status"
-SITE_AUTHOR = "Tracelytics Ops"
-SITE_URL = "http://status.tracelytics.com"
-REPORT_URL = "mailto:support@tracelytics.com"
+SITE_NAME = "TraceView Status"
+SITE_AUTHOR = "TraceView Ops"
+SITE_URL = "http://status.tv.appneta.com"
+REPORT_URL = "mailto:traceviewsupport@appneta.com"
 
 # RSS Feed settings
 RSS_NUM_EVENTS_TO_FETCH = 50
