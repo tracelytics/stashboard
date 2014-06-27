@@ -12,7 +12,11 @@
   <dl class="form">
     <dt><label for="message">Message</label></dt>
     <dd><textarea id="message" name="message" size="30" type="text">{{description}}</textarea></dd>
+    {% if twitter_handle %}
+    <dd><input type="checkbox" name="tweet" id="tweet"/><label for="tweet">Tweet this update to <span class="twitter_handle">@{{twitter_handle}}</span></label></dd>
+    {% endif %}
   </dl>
+
 
   <link rel="redirect" href="/admin/services/{{service.slug}}" />
 

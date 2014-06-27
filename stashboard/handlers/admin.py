@@ -8,16 +8,29 @@ from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 from google.appengine.api import users
 from google.appengine.ext import db
+from google.appengine.ext import webapp
 from handlers import api
 from handlers import site
-from models import List, Service, Status, Event, Image, Profile
+from models import List, Service, Status, Event, Image, Profile, InternalEvent
 from utils import slugify
 
+
+import oauth2 as oauth
+import socket
+import urllib
 
 def default_template_data():
     td = site.default_template_data()
     td["title"] = td["title"] + " Admin"
     return td
+
+
+def setup_occurred():
+    return InternalEvent.get_by_key_name("load_defaults") is not None
+
+
+def finish_setup():
+    assert InternalEvent.get_or_insert("load_defaults", name="load_defaults")
 
 
 class RootHandler(site.BaseHandler):
@@ -29,18 +42,32 @@ class RootHandler(site.BaseHandler):
 class SetupHandler(site.BaseHandler):
 
     def get(self):
+        if setup_occurred():
+            self.redirect("/admin")
         self.render(default_template_data(), 'admin/setup.html')
 
     def post(self):
-        Status.load_defaults()
-        Image.load_defaults()
-        api.invalidate_cache()
+        if not setup_occurred():
+            Status.load_defaults()
+            Image.load_defaults()
+            api.invalidate_cache()
+            finish_setup()
+        self.redirect("/admin")
+
+
+class SkipHandler(site.BaseHandler):
+
+    def get(self):
+        finish_setup()
         self.redirect("/admin")
 
 
 class ServiceHandler(site.BaseHandler):
 
     def get(self):
+        if not setup_occurred():
+            self.redirect("/admin/setup")
+
         td = default_template_data()
         td["services_selected"] = True
         td["services"] = Service.all().order("name").fetch(1000)
@@ -427,6 +454,40 @@ class OAuthVerifyHandler(site.BaseHandler):
         profile.put()
 
         self.redirect("/admin/credentials")
+
+
+class EventTweetHandler(webapp.RequestHandler):
+    def post(self):
+        if not (settings.TWITTER_CONSUMER_KEY and settings.TWITTER_CONSUMER_SECRET and \
+                settings.TWITTER_ACCESS_TOKEN and settings.TWITTER_ACCESS_TOKEN_SECRET):
+            logging.error('Twitter credentials not configured properly in settings.py')
+            return
+
+        service_name = self.request.get('service_name')
+        status_name = self.request.get('status_name')
+        message = self.request.get('message')
+
+        if not service_name or not status_name or not message:
+            logging.error('Internal Twitter endpoint not called correctly')
+            return
+
+        consumer = oauth.Consumer(key=settings.TWITTER_CONSUMER_KEY, secret=settings.TWITTER_CONSUMER_SECRET)
+        token = oauth.Token(key=settings.TWITTER_ACCESS_TOKEN, secret=settings.TWITTER_ACCESS_TOKEN_SECRET)
+
+        client = oauth.Client(consumer, token, timeout=10)
+
+        try:
+            resp, content = client.request(
+                'https://api.twitter.com/1.1/statuses/update.json',
+                method='POST',
+                body=urllib.urlencode({'status': '[%s - %s] %s' % (service_name, status_name, message)})
+            )
+            if resp.status == 200:
+                logging.info('Tweet successful: [%s - %s] %s' % (service_name, status_name, message))
+            else:
+                logging.error('Tweet failed: Response headers: %s; Response content: %s' % (resp, content))
+        except socket.timeout:
+            logging.error('Unable to post to Twitter API.')
 
 
 class InvalidateCacheHandler(site.BaseHandler):
