@@ -1,5 +1,5 @@
-application: tracelytics-status
-version: 2
+application: traceview-status
+version: 1
 runtime: python27
 api_version: 1
 threadsafe: false
