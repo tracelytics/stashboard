@@ -32,7 +32,6 @@ import string
 import re
 import os
 import cgi
-import urllib
 import logging
 
 from datetime import timedelta
@@ -76,7 +75,7 @@ def aware_to_naive(d):
 
 class NotFoundHandler(restful.Controller):
     def get(self):
-        self.error(404, "Can't find resouce")
+        self.error(404, "Can't find resource")
 
 class ListsListHandler(restful.Controller):
 
@@ -395,6 +394,11 @@ class EventsListHandler(restful.Controller):
         e.informational = informational and informational == "true"
         e.put()
 
+        # Queue up a task that calls the Twitter API to make a tweet.
+        if self.request.get('tweet'):
+            logging.info('Attempting to post a tweet for the latest event via async GAE task queue.')
+            taskqueue.add(url='/admin/tweet', params={'service_name': service.name, 'status_name': status.name, 'message': message})
+
         invalidate_cache()
         self.json(e.rest(self.base_url(version)))
 
@@ -457,7 +461,7 @@ class EventInstanceHandler(restful.Controller):
             self.error(404, "Service %s not found" % service_slug)
             return
 
- 
+
         try:
             event = Event.get(db.Key(sid))
         except datastore_errors.BadKeyError:

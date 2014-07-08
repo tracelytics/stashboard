@@ -51,6 +51,7 @@ def default_template_data():
     data = {
         "title": settings.SITE_NAME,
         "report_url": settings.REPORT_URL,
+        "twitter_handle": settings.TWITTER_HANDLE,
         }
 
     user = users.get_current_user()
@@ -279,7 +280,10 @@ class ListSummaryHandler(BaseHandler):
                 lists[service.list.slug]["status"].name < status.name:
                 lists[service.list.slug] = {"list": service.list, "status": status}
 
-        return { "lists": lists.items() }
+        return {
+            "lists": lists.items(),
+            "statuses": Status.all().fetch(100),
+            }
 
     def get(self):
         td = default_template_data()
@@ -322,6 +326,7 @@ class ServiceHandler(BaseHandler):
             events.filter('start >= ', start_date).filter('start <', end_date)
 
         td = default_template_data()
+        td["statuses"] = Status.all().fetch(100)
         td["service"] = service
         td["events"] = events.order("-start").fetch(500)
 

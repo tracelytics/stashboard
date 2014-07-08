@@ -1,4 +1,4 @@
-import json
+from google.appengine.ext import testbed
 import models
 from test_api import StashboardTest
 
@@ -86,7 +86,7 @@ class EventInstanceTest(StashboardTest):
         event = models.Event(service=service, status=self.status, message="foo")
         event.put()
 
-        url = "/admin/api/v1/services/foo/events/{}".format(event.key())
+        url = "/admin/api/v1/services/foo/events/%s" % event.key()
         response = self.delete(url)
         self.assertEquals(response.status_code, 404)
 
@@ -97,12 +97,12 @@ class EventInstanceTest(StashboardTest):
         event = models.Event(service=service, status=self.status, message="foo")
         event.put()
 
-        url = "/admin/api/v1/services/foo/events/{}".format(event.key())
+        url = "/admin/api/v1/services/foo/events/%s" % event.key()
         response = self.get(url)
         self.assertEquals(response.status_code, 404)
 
     def test_get_event(self):
-        url = "/admin/api/v1/services/foo/events/{}".format(self.event.key())
+        url = "/admin/api/v1/services/foo/events/%s" % self.event.key()
         response = self.get(url)
         self.assertEquals(response.headers["Content-Type"], "application/json")
         self.assertEquals(response.status_code, 200)
@@ -116,7 +116,7 @@ class EventInstanceTest(StashboardTest):
         self.assertEquals(response.status_code, 405)
 
     def test_delete_event(self):
-        url = "/admin/api/v1/services/foo/events/{}".format(self.event.key())
+        url = "/admin/api/v1/services/foo/events/%s" % self.event.key()
         response = self.delete(url)
         self.assertEquals(response.headers["Content-Type"], "application/json")
         self.assertEquals(response.status_code, 200)
@@ -133,13 +133,13 @@ class EventListTest(StashboardTest):
         status.put()
 
     def test_post_with_status(self):
-        response = self.post("/admin/api/v1/services/foo/events", 
+        response = self.post("/admin/api/v1/services/foo/events",
             data={"message": "hello", "status": "up"})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers["Content-Type"], "application/json")
 
     def test_post_success(self):
-        response = self.post("/admin/api/v1/services/foo/events", 
+        response = self.post("/admin/api/v1/services/foo/events",
             data={"message": "hello"})
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers["Content-Type"], "application/json")
@@ -170,5 +170,36 @@ class EventListTest(StashboardTest):
         self.assertEquals(response.status_code, 404)
         self.assertEquals(response.headers["Content-Type"], "application/json")
 
+    def test_post_with_twitter(self):
+        response = self.post("/admin/api/v1/services/foo/events",
+            data={"message": "hello", "status": "up", "tweet": "on"})
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers["Content-Type"], "application/json")
+        queue_tasks = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME).GetTasks('default')
 
+        # Assert that we have the Twitter task in the queue
+        queue_endpoints = [task['url'] for task in queue_tasks]
+        self.assertTrue('/admin/tweet' in queue_endpoints)
+
+        response = self.post("/admin/api/v1/services/foo/events",
+            data={"message": "hello", "status": "up", "tweet": "checked"})
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers["Content-Type"], "application/json")
+        queue_tasks = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME).GetTasks('default')
+
+        # Assert that we have two Twitter tasks lined up.
+        queue_endpoints = [task['url'] for task in queue_tasks]
+        self.assertEquals(queue_endpoints.count('/admin/tweet'), 2)
+
+
+    def test_post_without_twitter(self):
+        response = self.post("/admin/api/v1/services/foo/events",
+            data={"message": "hello", "status": "up", "tweet": ""})
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers["Content-Type"], "application/json")
+        queue_tasks = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME).GetTasks('default')
+
+        # Assert that we have no Twitter tasks lined up.
+        queue_endpoints = [task['url'] for task in queue_tasks]
+        self.assertTrue('/admin/tweet' not in queue_endpoints)
 

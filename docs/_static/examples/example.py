@@ -5,7 +5,7 @@ import unittest
 import random
 
 # Stashboard application id
-app_id = "stashboard"
+app_id = "stashboard-hrd"
 
 # These keys can be found at /admin/credentials
 consumer_key = 'anonymous'
@@ -23,7 +23,7 @@ token = oauth.Token(oauth_key, oauth_secret)
 client = oauth.Client(consumer, token=token)
 
 # Base url for all rest requests
-base_url = "https://%s.appspot.com/api/v1" % app_id
+base_url = "https://%s.appspot.com/admin/api/v1" % app_id
 
 
 # CREATE a new service
@@ -46,9 +46,10 @@ image = random.choice(images)
 
 # POST to the Statuses Resources to create a new Status
 data = urllib.urlencode({
-    "name": "Up",
-    "description": "The web service is up and running",
+    "name": "Maintenance",
+    "description": "The web service is under-going maintenance",
     "image": image["name"],
+    "level": "WARNING",
 })
 
 resp, content = client.request(base_url + "/statuses", "POST", body=data)
@@ -61,4 +62,4 @@ data = urllib.urlencode({
 })
 
 resp, content = client.request(service["url"] + "/events", "POST", body=data)
-event = json.loads(content)
+print json.loads(content)

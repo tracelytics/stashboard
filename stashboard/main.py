@@ -71,6 +71,7 @@ SITE = [
 ADMIN = [
     #(r'/admin/api', admin.SetupHandler),
     (r'/admin/setup', admin.SetupHandler),
+    (r'/admin/setup/skip', admin.SkipHandler),
     (r'/admin/services/create', admin.CreateServiceHandler),
     (r'/admin/services/(.*)/events/(.*)/delete', admin.DeleteEventHandler),
     (r'/admin/services/(.*)/note/create', admin.NoteHandler),
@@ -93,6 +94,7 @@ ADMIN = [
     (r'/admin/oauth/authorize', admin.OAuthRequestHandler),
     (r'/admin/oauth/verify', admin.OAuthVerifyHandler),
     (r'/admin/tasks/invalidate-cache', admin.InvalidateCacheHandler),
+    (r'/admin/tweet', admin.EventTweetHandler),
     (r'/admin', admin.RootHandler),
     ]
 
